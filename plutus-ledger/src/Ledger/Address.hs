@@ -13,6 +13,7 @@ module Ledger.Address
     , pubKeyHashAddress
     , pubKeyAddress
     , scriptAddress
+    , scriptStakedAddress
     ) where
 
 import Codec.Serialise (Serialise)
@@ -22,7 +23,7 @@ import Data.OpenApi qualified as OpenApi
 import GHC.Generics (Generic)
 import Ledger.Crypto (PrivateKey, PubKey (PubKey), PubKeyHash (PubKeyHash), pubKeyHash)
 import Ledger.Orphans ()
-import Ledger.Scripts (Validator, validatorHash)
+import Ledger.Scripts (Validator, ValidatorHash, validatorHash)
 import Plutus.V1.Ledger.Address as Export hiding (pubKeyHashAddress)
 import Plutus.V1.Ledger.Credential (Credential (PubKeyCredential, ScriptCredential), StakingCredential (StakingHash))
 import PlutusTx qualified
@@ -84,4 +85,9 @@ pubKeyAddress (PaymentPubKey pk) skh =
 {-# INLINABLE scriptAddress #-}
 -- | The address that should be used by a transaction output locked by the given validator script.
 scriptAddress :: Validator -> Address
-scriptAddress validator = Address (ScriptCredential (validatorHash validator)) Nothing
+scriptAddress validator = scriptStakedAddress (validatorHash validator) Nothing
+
+{-# INLINABLE scriptStakedAddress #-}
+-- | The address that should be used by a transaction output locked by the given validator script.
+scriptStakedAddress :: ValidatorHash -> Maybe StakingCredential -> Address
+scriptStakedAddress validatorH = Address (ScriptCredential validatorH)
