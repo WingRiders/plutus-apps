@@ -26,12 +26,12 @@ import Ledger.Constraints.TxConstraints (ScriptInputConstraint (ScriptInputConst
                                          TxConstraints (TxConstraints, txConstraints, txOwnInputs, txOwnOutputs))
 import Ledger.Value qualified as Value
 import Plutus.V1.Ledger.Ada qualified as Ada
-import Plutus.V1.Ledger.Address qualified as Address
 import Plutus.V1.Ledger.Contexts (ScriptContext (ScriptContext, scriptContextTxInfo),
                                   TxInInfo (TxInInfo, txInInfoOutRef, txInInfoResolved),
                                   TxInfo (txInfoData, txInfoInputs, txInfoMint, txInfoValidRange),
                                   TxOut (TxOut, txOutAddress, txOutDatumHash, txOutValue))
 import Plutus.V1.Ledger.Contexts qualified as V
+import Plutus.V1.Ledger.Credential (Credential (PubKeyCredential), StakingCredential (StakingHash))
 import Plutus.V1.Ledger.Interval (contains)
 import Plutus.V1.Ledger.Value (leq)
 
@@ -108,10 +108,10 @@ checkTxConstraint ctx@ScriptContext{scriptContextTxInfo} = \case
         in
         traceIfFalse "La" -- "MustPayToPubKey"
         $ vl `leq` V.valuePaidTo scriptContextTxInfo pk && any (checkOutput mdv) outs
-    MustPayToOtherScript vlh dv vl ->
+    MustPayToOtherScript vlh skhM dv vl ->
         let outs = V.txInfoOutputs scriptContextTxInfo
             hsh = V.findDatumHash dv scriptContextTxInfo
-            addr = Address.scriptHashAddress vlh
+            addr = Ledger.scriptStakedAddress vlh (fmap (StakingHash . PubKeyCredential . Ledger.unStakePubKeyHash) skhM)
             checkOutput TxOut{txOutAddress, txOutValue, txOutDatumHash=Just svh} =
                    Ada.fromValue txOutValue >= Ada.fromValue vl
                 && Ada.fromValue txOutValue <= Ada.fromValue vl + Ledger.minAdaTxOut

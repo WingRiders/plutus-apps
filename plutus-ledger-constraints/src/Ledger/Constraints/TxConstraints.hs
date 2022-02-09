@@ -64,7 +64,7 @@ data TxConstraint =
     -- ^ The transaction must mint the given token and amount.
     | MustPayToPubKeyAddress PaymentPubKeyHash (Maybe StakePubKeyHash) (Maybe Datum) Value
     -- ^ The transaction must create a transaction output with a public key address.
-    | MustPayToOtherScript ValidatorHash Datum Value
+    | MustPayToOtherScript ValidatorHash (Maybe StakePubKeyHash) Datum Value
     -- ^ The transaction must create a transaction output with a script address.
     | MustSatisfyAnyOf [[TxConstraint]]
     deriving stock (Haskell.Show, Generic, Haskell.Eq)
@@ -90,8 +90,8 @@ instance Pretty TxConstraint where
             hang 2 $ vsep ["must mint value:", pretty mps, pretty red, pretty tn <+> pretty i]
         MustPayToPubKeyAddress pkh skh datum v ->
             hang 2 $ vsep ["must pay to pubkey address:", pretty pkh, pretty skh, pretty datum, pretty v]
-        MustPayToOtherScript vlh dv vl ->
-            hang 2 $ vsep ["must pay to script:", pretty vlh, pretty dv, pretty vl]
+        MustPayToOtherScript vlh skhM dv vl ->
+            hang 2 $ vsep ["must pay to script:", pretty vlh, pretty skhM, pretty dv, pretty vl]
         MustHashDatum dvh dv ->
             hang 2 $ vsep ["must hash datum:", pretty dvh, pretty dv]
         MustSatisfyAnyOf xs ->
@@ -317,7 +317,13 @@ mustPayWithDatumToPubKeyAddress pkh skh datum =
 -- @vh@, @d@ and @v@ is part of the transaction's outputs.
 mustPayToOtherScript :: forall i o. ValidatorHash -> Datum -> Value -> TxConstraints i o
 mustPayToOtherScript vh dv vl =
-    singleton (MustPayToOtherScript vh dv vl)
+    singleton (MustPayToOtherScript vh Nothing dv vl)
+    <> singleton (MustIncludeDatum dv)
+
+{-# INLINABLE mustPayToOtherStakedScript #-}
+mustPayToOtherStakedScript :: forall i o. ValidatorHash -> StakePubKeyHash -> Datum -> Value -> TxConstraints i o
+mustPayToOtherStakedScript vh skh dv vl =
+    singleton (MustPayToOtherScript vh (Just skh) dv vl)
     <> singleton (MustIncludeDatum dv)
 
 {-# INLINABLE mustMintValue #-}
@@ -499,7 +505,7 @@ modifiesUtxoSet TxConstraints{txConstraints, txOwnOutputs, txOwnInputs} =
             MustSpendScriptOutput{}         -> True
             MustMintValue{}                 -> True
             MustPayToPubKeyAddress _ _ _ vl -> not (isZero vl)
-            MustPayToOtherScript _ _ vl     -> not (isZero vl)
+            MustPayToOtherScript _ _ _ vl   -> not (isZero vl)
             MustSatisfyAnyOf xs             -> any requiresInputOutput $ concat xs
             _                               -> False
     in any requiresInputOutput txConstraints
