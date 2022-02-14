@@ -29,6 +29,7 @@ import PlutusTx.Prelude (Bool (False, True), Foldable (foldMap), Functor (fmap),
                          not, null, ($), (.), (>>=), (||))
 
 import Ledger.Address (PaymentPubKeyHash, StakePubKeyHash)
+import Plutus.V1.Ledger.Credential (StakingCredential)
 import Plutus.V1.Ledger.Interval qualified as I
 import Plutus.V1.Ledger.Scripts (Datum (Datum), DatumHash, MintingPolicyHash, Redeemer, ValidatorHash, unitRedeemer)
 import Plutus.V1.Ledger.Time (POSIXTimeRange)
@@ -49,7 +50,7 @@ data TxConstraint =
     | MustSpendScriptOutput TxOutRef Redeemer
     | MustMintValue MintingPolicyHash Redeemer TokenName Integer
     | MustPayToPubKeyAddress PaymentPubKeyHash (Maybe StakePubKeyHash) (Maybe Datum) Value
-    | MustPayToOtherScript ValidatorHash (Maybe StakePubKeyHash) Datum Value
+    | MustPayToOtherScript ValidatorHash (Maybe StakingCredential) Datum Value
     | MustHashDatum DatumHash Datum
     | MustSatisfyAnyOf [[TxConstraint]]
     deriving stock (Haskell.Show, Generic, Haskell.Eq)
@@ -235,11 +236,11 @@ mustPayToOtherScript :: forall i o. ValidatorHash -> Datum -> Value -> TxConstra
 mustPayToOtherScript vh = mustPayToMaybeStakedScript vh Nothing
 
 {-# INLINABLE mustPayToOtherStakedScript #-}
-mustPayToOtherStakedScript :: forall i o. ValidatorHash -> StakePubKeyHash -> Datum -> Value -> TxConstraints i o
+mustPayToOtherStakedScript :: forall i o. ValidatorHash -> StakingCredential -> Datum -> Value -> TxConstraints i o
 mustPayToOtherStakedScript vh skh = mustPayToMaybeStakedScript vh (Just skh)
 
 {-# INLINABLE mustPayToMaybeStakedScript #-}
-mustPayToMaybeStakedScript :: forall i o. ValidatorHash -> Maybe StakePubKeyHash -> Datum -> Value -> TxConstraints i o
+mustPayToMaybeStakedScript :: forall i o. ValidatorHash -> Maybe StakingCredential -> Datum -> Value -> TxConstraints i o
 mustPayToMaybeStakedScript vh skh dv vl =
     singleton (MustPayToOtherScript vh skh dv vl)
     <> singleton (MustIncludeDatum dv)
