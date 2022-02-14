@@ -90,7 +90,6 @@ import Ledger.Typed.Scripts qualified as Scripts
 import Ledger.Typed.Tx (ConnectionError)
 import Ledger.Typed.Tx qualified as Typed
 import Plutus.V1.Ledger.Ada qualified as Ada
-import Plutus.V1.Ledger.Credential (Credential (PubKeyCredential), StakingCredential (StakingHash))
 import Plutus.V1.Ledger.Time (POSIXTimeRange)
 import Plutus.V1.Ledger.Value (Value)
 import Plutus.V1.Ledger.Value qualified as Value
@@ -624,7 +623,7 @@ processConstraint = \case
                                                    } :)
         valueSpentOutputs <>= provided vl
     MustPayToOtherScript vlh skhM dv vl -> do
-        let addr = Address.scriptStakedAddress vlh (fmap (StakingHash . PubKeyCredential . Address.unStakePubKeyHash) skhM)
+        let addr = Address.scriptStakedAddress vlh skhM
             theHash = datumHash dv
         unbalancedTx . tx . Tx.datumWitnesses . at theHash .= Just dv
         unbalancedTx . tx . Tx.outputs %= (Tx.scriptTxOut' vl addr dv :)
