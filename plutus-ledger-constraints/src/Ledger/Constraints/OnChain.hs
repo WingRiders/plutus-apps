@@ -27,7 +27,6 @@ import Plutus.V1.Ledger.Contexts (ScriptContext (ScriptContext, scriptContextTxI
                                   TxInfo (txInfoData, txInfoInputs, txInfoMint, txInfoValidRange),
                                   TxOut (TxOut, txOutAddress, txOutDatumHash, txOutValue))
 import Plutus.V1.Ledger.Contexts qualified as V
-import Plutus.V1.Ledger.Credential (Credential (PubKeyCredential), StakingCredential (StakingHash))
 import Plutus.V1.Ledger.Interval (contains)
 import Plutus.V1.Ledger.Value (leq)
 
@@ -98,7 +97,7 @@ checkTxConstraint ctx@ScriptContext{scriptContextTxInfo} = \case
     MustPayToOtherScript vlh skhM dv vl ->
         let outs = V.txInfoOutputs scriptContextTxInfo
             hsh = V.findDatumHash dv scriptContextTxInfo
-            addr = Ledger.scriptStakedAddress vlh (fmap (StakingHash . PubKeyCredential . Ledger.unStakePubKeyHash) skhM)
+            addr = Ledger.scriptStakedAddress vlh skhM
             checkOutput TxOut{txOutAddress, txOutValue, txOutDatumHash=Just svh} =
                    Ada.fromValue txOutValue >= Ada.fromValue vl
                 && Ada.fromValue txOutValue <= Ada.fromValue vl + Ledger.minAdaTxOut
