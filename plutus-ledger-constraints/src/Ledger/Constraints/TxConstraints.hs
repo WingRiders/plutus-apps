@@ -232,14 +232,16 @@ mustPayWithDatumToPubKeyAddress pkh skh datum =
 {-# INLINABLE mustPayToOtherScript #-}
 -- | Lock the value with a public key
 mustPayToOtherScript :: forall i o. ValidatorHash -> Datum -> Value -> TxConstraints i o
-mustPayToOtherScript vh dv vl =
-    singleton (MustPayToOtherScript vh Nothing dv vl)
-    <> singleton (MustIncludeDatum dv)
+mustPayToOtherScript vh = mustPayToMaybeStakedScript vh Nothing
 
 {-# INLINABLE mustPayToOtherStakedScript #-}
 mustPayToOtherStakedScript :: forall i o. ValidatorHash -> StakePubKeyHash -> Datum -> Value -> TxConstraints i o
-mustPayToOtherStakedScript vh skh dv vl =
-    singleton (MustPayToOtherScript vh (Just skh) dv vl)
+mustPayToOtherStakedScript vh skh = mustPayToMaybeStakedScript vh (Just skh)
+
+{-# INLINABLE mustPayToMaybeStakedScript #-}
+mustPayToMaybeStakedScript :: forall i o. ValidatorHash -> Maybe StakePubKeyHash -> Datum -> Value -> TxConstraints i o
+mustPayToMaybeStakedScript vh skh dv vl =
+    singleton (MustPayToOtherScript vh skh dv vl)
     <> singleton (MustIncludeDatum dv)
 
 {-# INLINABLE mustMintValue #-}
